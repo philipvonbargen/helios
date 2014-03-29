@@ -21,8 +21,6 @@
 
 package com.spotify.helios.master;
 
-import ch.qos.logback.access.jetty.RequestLogImpl;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
 import com.google.common.util.concurrent.AbstractIdleService;
@@ -30,6 +28,7 @@ import com.google.common.util.concurrent.AbstractIdleService;
 import com.codahale.metrics.MetricRegistry;
 import com.spotify.helios.master.http.VersionResponseFilter;
 import com.spotify.helios.master.metrics.ReportingResourceMethodDispatchAdapter;
+import com.spotify.helios.master.resources.DashboardResource;
 import com.spotify.helios.master.resources.HistoryResource;
 import com.spotify.helios.master.resources.HostsResource;
 import com.spotify.helios.master.resources.JobsResource;
@@ -53,6 +52,8 @@ import com.spotify.helios.servicescommon.coordination.ZooKeeperModelReporter;
 import com.spotify.helios.servicescommon.statistics.Metrics;
 import com.spotify.helios.servicescommon.statistics.MetricsImpl;
 import com.spotify.helios.servicescommon.statistics.NoopMetrics;
+import com.yammer.dropwizard.assets.AssetServlet;
+import com.yammer.dropwizard.views.ViewMessageBodyWriter;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -64,17 +65,18 @@ import org.eclipse.jetty.server.handler.RequestLogHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.dropwizard.configuration.ConfigurationException;
-import io.dropwizard.jetty.RequestLogFactory;
-import io.dropwizard.logging.AppenderFactory;
-import io.dropwizard.server.DefaultServerFactory;
-import io.dropwizard.setup.Environment;
-
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.DispatcherType;
+
+import ch.qos.logback.access.jetty.RequestLogImpl;
+import io.dropwizard.configuration.ConfigurationException;
+import io.dropwizard.jetty.RequestLogFactory;
+import io.dropwizard.logging.AppenderFactory;
+import io.dropwizard.server.DefaultServerFactory;
+import io.dropwizard.setup.Environment;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.spotify.helios.servicescommon.ServiceRegistrars.createServiceRegistrar;
@@ -162,6 +164,15 @@ public class MasterService extends AbstractIdleService {
     environment.jersey().register(new MastersResource(model));
     environment.jersey().register(new VersionResource());
     environment.jersey().register(new UserProvider());
+
+    // Dashboard
+    environment.jersey().register(ViewMessageBodyWriter.class);
+//    environment.addProvider(ViewMessageBodyWriter.class);
+    final String assetsPath = "/assets/";
+    environment.servlets().addServlet(assetsPath + "*", new AssetServlet(assetsPath, assetsPath, null));
+//    environment.addServlet(new AssetServlet(assetsPath, assetsPath, null), assetsPath + "*");
+    environment.jersey().register(new DashboardResource(model));
+//    environment.addResource(new DashboardResource(model));
 
     final DefaultServerFactory serverFactory = ServiceUtil.createServerFactory(
         config.getHttpEndpoint(), config.getAdminPort(), false);
