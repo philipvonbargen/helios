@@ -182,6 +182,7 @@ public class DefaultZooKeeperClient implements ZooKeeperClient {
                                                          final PersistentEphemeralNode.Mode mode,
                                                          final byte[] data) {
     assertClusterIdFlagTrue();
+    log.error("client: {}, mode: {}, path: {}, data: {}", client, mode, path, data);
     return new PersistentEphemeralNode(client, mode, path, data);
   }
 
