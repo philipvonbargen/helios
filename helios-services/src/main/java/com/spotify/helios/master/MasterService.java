@@ -52,7 +52,6 @@ import com.spotify.helios.servicescommon.coordination.ZooKeeperModelReporter;
 import com.spotify.helios.servicescommon.statistics.Metrics;
 import com.spotify.helios.servicescommon.statistics.MetricsImpl;
 import com.spotify.helios.servicescommon.statistics.NoopMetrics;
-import com.yammer.dropwizard.assets.AssetServlet;
 import com.yammer.dropwizard.views.ViewMessageBodyWriter;
 
 import org.apache.curator.RetryPolicy;
@@ -72,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.DispatcherType;
 
 import ch.qos.logback.access.jetty.RequestLogImpl;
+import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.configuration.ConfigurationException;
 import io.dropwizard.jetty.RequestLogFactory;
 import io.dropwizard.logging.AppenderFactory;
@@ -167,12 +167,9 @@ public class MasterService extends AbstractIdleService {
 
     // Dashboard
     environment.jersey().register(ViewMessageBodyWriter.class);
-//    environment.addProvider(ViewMessageBodyWriter.class);
-    final String assetsPath = "/assets/";
-    environment.servlets().addServlet(assetsPath + "*", new AssetServlet(assetsPath, assetsPath, null));
-//    environment.addServlet(new AssetServlet(assetsPath, assetsPath, null), assetsPath + "*");
+    new AssetsBundle("/assets/css", "/css", null, "css").run(environment);
+    new AssetsBundle("/assets/js", "/js", null, "js").run(environment);
     environment.jersey().register(new DashboardResource(model));
-//    environment.addResource(new DashboardResource(model));
 
     final DefaultServerFactory serverFactory = ServiceUtil.createServerFactory(
         config.getHttpEndpoint(), config.getAdminPort(), false);

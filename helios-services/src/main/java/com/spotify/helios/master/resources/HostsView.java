@@ -44,13 +44,13 @@ import java.util.TreeMap;
 import static com.google.common.base.CharMatcher.WHITESPACE;
 import static java.lang.String.format;
 
-public class DashboardView extends View {
+public class HostsView extends View {
 
-  private final String ROOT_URL = "/dashboard";
+  private final String ROOT_URL = "/dashboard/hosts";
   private MasterModel model;
 
-  public DashboardView(final MasterModel model) {
-    super("dashboard.ftl");
+  public HostsView(final MasterModel model) {
+    super("hosts.ftl");
     this.model = model;
   }
 
