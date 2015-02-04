@@ -50,10 +50,12 @@ public class TaskRunnerFactory {
   }
 
   public TaskRunner create(final long delay,
+                           final long warmup,
                            final String containerId,
                            final TaskRunner.Listener listener) {
     return TaskRunner.builder()
         .delayMillis(delay)
+        .warmupSeconds(warmup)
         .config(taskConfig)
         .docker(docker)
         .existingContainerId(containerId)

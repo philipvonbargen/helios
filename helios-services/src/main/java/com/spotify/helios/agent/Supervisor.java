@@ -295,9 +295,10 @@ public class Supervisor {
 
     @Override
     public void perform(final boolean done) throws InterruptedException {
+      final long warmup = job.getWarmup();
       if (runner == null) {
         // There's no active runner, start it to bring up the container.
-        startAfter(0);
+        startAfter(0, warmup);
         return;
       }
 
@@ -325,12 +326,12 @@ public class Supervisor {
       }
 
       // Restart the task
-      startAfter(restartPolicy.delay(monitor.throttle()));
+      startAfter(restartPolicy.delay(monitor.throttle()), warmup);
     }
 
-    private void startAfter(final long delay) {
+    private void startAfter(final long delay, final long warmup) {
       log.debug("starting job (delay={}): {}", delay, job);
-      runner = runnerFactory.create(delay, containerId, new TaskListener());
+      runner = runnerFactory.create(delay, warmup, containerId, new TaskListener());
       runner.startAsync();
       runner.resultFuture().addListener(reactor.signalRunnable(), sameThreadExecutor());
     }

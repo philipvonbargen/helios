@@ -57,6 +57,7 @@ class TaskRunner extends InterruptingExecutionThreadService {
   private static final int SECONDS_TO_WAIT_BEFORE_KILL = 120;
 
   private final long delayMillis;
+  private final long warmupSeconds;
   private final SettableFuture<Integer> result = SettableFuture.create();
   private final TaskConfig config;
   private final DockerClient docker;
@@ -69,6 +70,7 @@ class TaskRunner extends InterruptingExecutionThreadService {
   private TaskRunner(final Builder builder) {
     super("TaskRunner(" + builder.taskConfig.name() + ")");
     this.delayMillis = builder.delayMillis;
+    this.warmupSeconds = checkNotNull(builder.warmupSeconds, "warmupSeconds");
     this.config = checkNotNull(builder.taskConfig, "config");
     this.docker = checkNotNull(builder.docker, "docker");
     this.listener = checkNotNull(builder.listener, "listener");
@@ -84,6 +86,19 @@ class TaskRunner extends InterruptingExecutionThreadService {
 
   public ListenableFuture<Integer> resultFuture() {
     return result;
+  }
+
+  /**
+   * Register a set of service endpoints.
+   *
+   * @return boolean true if service registration handle was present, false otherwise
+   */
+  public boolean register() throws InterruptedException {
+    if (serviceRegistrationHandle.isPresent()) {
+      registrar.register(config.registration());
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -277,6 +292,7 @@ class TaskRunner extends InterruptingExecutionThreadService {
     }
 
     private long delayMillis;
+    private long warmupSeconds;
     private TaskConfig taskConfig;
     private DockerClient docker;
     private String existingContainerId;
@@ -285,6 +301,11 @@ class TaskRunner extends InterruptingExecutionThreadService {
 
     public Builder delayMillis(final long delayMillis) {
       this.delayMillis = delayMillis;
+      return this;
+    }
+
+    public Builder warmupSeconds(final long warmupSeconds) {
+      this.warmupSeconds = warmupSeconds;
       return this;
     }
 

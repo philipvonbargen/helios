@@ -90,6 +90,7 @@ public class Job extends Descriptor implements Comparable<Job> {
   public static final Map<String, PortMapping> EMPTY_PORTS = emptyMap();
   public static final List<String> EMPTY_COMMAND = emptyList();
   public static final Map<ServiceEndpoint, ServicePorts> EMPTY_REGISTRATION = emptyMap();
+  public static final Integer EMPTY_WARMUP_PERIOD = null;
   public static final Integer EMPTY_GRACE_PERIOD = null;
   public static final Map<String, String> EMPTY_VOLUMES = emptyMap();
   public static final String EMPTY_MOUNT = "";
@@ -105,6 +106,7 @@ public class Job extends Descriptor implements Comparable<Job> {
   private final Resources resources;
   private final Map<String, PortMapping> ports;
   private final Map<ServiceEndpoint, ServicePorts> registration;
+  private final Integer warmupPeriod;
   private final Integer gracePeriod;
   private final Map<String, String> volumes;
   private final Date expires;
@@ -122,6 +124,8 @@ public class Job extends Descriptor implements Comparable<Job> {
    * @param resources Resource specification for the container.
    * @param ports The ports you wish to expose from the container.
    * @param registration Configuration information for the discovery service (if applicable)
+   * @param warmupPeriod How long to let the container wait until registering with the discovery
+   *    service.  If nothing is configured in registration, this option is ignored.
    * @param gracePeriod How long to let the container run after deregistering with the discovery
    *    service.  If nothing is configured in registration, this option is ignored.
    * @param volumes Docker volumes to mount.
@@ -138,6 +142,7 @@ public class Job extends Descriptor implements Comparable<Job> {
              @JsonProperty("ports") @Nullable final Map<String, PortMapping> ports,
              @JsonProperty("registration") @Nullable
                  final Map<ServiceEndpoint, ServicePorts> registration,
+             @JsonProperty("warmupPeriod") @Nullable final Integer warmupPeriod,
              @JsonProperty("gracePeriod") @Nullable final Integer gracePeriod,
              @JsonProperty("volumes") @Nullable final Map<String, String> volumes,
              @JsonProperty("expires") @Nullable final Date expires,
@@ -153,6 +158,7 @@ public class Job extends Descriptor implements Comparable<Job> {
     this.resources = Optional.fromNullable(resources).orNull();
     this.ports = Optional.fromNullable(ports).or(EMPTY_PORTS);
     this.registration = Optional.fromNullable(registration).or(EMPTY_REGISTRATION);
+    this.warmupPeriod = Optional.fromNullable(warmupPeriod).orNull();
     this.gracePeriod = Optional.fromNullable(gracePeriod).orNull();
     this.volumes = Optional.fromNullable(volumes).or(EMPTY_VOLUMES);
     this.expires = expires;
@@ -171,6 +177,7 @@ public class Job extends Descriptor implements Comparable<Job> {
     this.resources = p.resources;
     this.ports = ImmutableMap.copyOf(checkNotNull(p.ports, "ports"));
     this.registration = ImmutableMap.copyOf(checkNotNull(p.registration, "registration"));
+    this.warmupPeriod = p.warmupPeriod;
     this.gracePeriod = p.gracePeriod;
     this.volumes = ImmutableMap.copyOf(checkNotNull(p.volumes, "volumes"));
     this.expires = p.expires;
@@ -210,6 +217,10 @@ public class Job extends Descriptor implements Comparable<Job> {
 
   public String getRegistrationDomain() {
     return registrationDomain;
+  }
+
+  public Integer getWarmupPeriod() {
+    return warmupPeriod;
   }
 
   public Integer getGracePeriod() {
@@ -279,6 +290,9 @@ public class Job extends Descriptor implements Comparable<Job> {
         : job.registrationDomain != null) {
       return false;
     }
+    if (warmupPeriod != null ? !warmupPeriod.equals(job.warmupPeriod) : job.warmupPeriod != null) {
+      return false;
+    }
     if (gracePeriod != null ? !gracePeriod.equals(job.gracePeriod) : job.gracePeriod != null) {
       return false;
     }
@@ -306,6 +320,7 @@ public class Job extends Descriptor implements Comparable<Job> {
     result = 31 * result + (ports != null ? ports.hashCode() : 0);
     result = 31 * result + (registration != null ? registration.hashCode() : 0);
     result = 31 * result + (registrationDomain != null ? registrationDomain.hashCode() : 0);
+    result = 31 * result + (warmupPeriod != null ? warmupPeriod.hashCode() : 0);
     result = 31 * result + (gracePeriod != null ? gracePeriod.hashCode() : 0);
     result = 31 * result + (volumes != null ? volumes.hashCode() : 0);
     result = 31 * result + (creatingUser != null ? creatingUser.hashCode() : 0);
@@ -323,6 +338,7 @@ public class Job extends Descriptor implements Comparable<Job> {
         .add("resources", resources)
         .add("ports", ports)
         .add("registration", registration)
+        .add("warmupPeriod", warmupPeriod)
         .add("gracePeriod", gracePeriod)
         .add("expires", expires)
         .add("registrationDomain", registrationDomain)
@@ -345,6 +361,7 @@ public class Job extends Descriptor implements Comparable<Job> {
         .setResources(resources)
         .setPorts(ports)
         .setRegistration(registration)
+        .setWarmupPeriod(warmupPeriod)
         .setGracePeriod(gracePeriod)
         .setVolumes(volumes)
         .setExpires(expires)
@@ -378,6 +395,7 @@ public class Job extends Descriptor implements Comparable<Job> {
       public Resources resources;
       public Map<String, PortMapping> ports;
       public Map<ServiceEndpoint, ServicePorts> registration;
+      public Integer warmupPeriod;
       public Integer gracePeriod;
       public Map<String, String> volumes;
       public Date expires;
@@ -390,6 +408,7 @@ public class Job extends Descriptor implements Comparable<Job> {
         this.resources = EMPTY_RESOURCES;
         this.ports = Maps.newHashMap(EMPTY_PORTS);
         this.registration = Maps.newHashMap(EMPTY_REGISTRATION);
+        this.warmupPeriod= EMPTY_WARMUP_PERIOD;
         this.gracePeriod = EMPTY_GRACE_PERIOD;
         this.volumes = Maps.newHashMap(EMPTY_VOLUMES);
         this.registrationDomain = EMPTY_REGISTRATION_DOMAIN;
@@ -406,6 +425,7 @@ public class Job extends Descriptor implements Comparable<Job> {
         this.resources = p.resources;
         this.ports = Maps.newHashMap(p.ports);
         this.registration = Maps.newHashMap(p.registration);
+        this.warmupPeriod = p.warmupPeriod;
         this.gracePeriod = p.gracePeriod;
         this.volumes = Maps.newHashMap(p.volumes);
         this.expires = p.expires;
@@ -495,6 +515,11 @@ public class Job extends Descriptor implements Comparable<Job> {
       return this;
     }
 
+    public Builder setWarmupPeriod(final Integer warmupPeriod) {
+      p.warmupPeriod = warmupPeriod;
+      return this;
+    }
+
     public Builder setVolumes(final Map<String, String> volumes) {
       p.volumes = Maps.newHashMap(volumes);
       return this;
@@ -545,6 +570,10 @@ public class Job extends Descriptor implements Comparable<Job> {
 
     public String getRegistrationDomain() {
       return p.registrationDomain;
+    }
+
+    public Integer getWarmupPeriod() {
+      return p.warmupPeriod;
     }
 
     public Integer getGracePeriod() {
